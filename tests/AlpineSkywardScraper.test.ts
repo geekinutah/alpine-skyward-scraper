@@ -49,8 +49,11 @@ test('AlpineSkywardScraper full integration loop', async () => {
         expect(Array.isArray(grades)).toBe(true);
 
         // Fetch Schedule (tests explicit wait for schedule)
-        const schedule = await scraper.getSchedule();
-        expect(Array.isArray(schedule)).toBe(true);
+        // getSchedule() now returns ScheduleResult { schedule, activeTerm }
+        const scheduleResult = await scraper.getSchedule();
+        expect(Array.isArray(scheduleResult.schedule)).toBe(true);
+        // activeTerm is a string or null — verify it's not undefined
+        expect(scheduleResult.activeTerm === null || typeof scheduleResult.activeTerm === 'string').toBe(true);
 
         // Fetch Attendance (tests explicit wait for attendance)
         const attendance = await scraper.getAttendance();
