@@ -1,0 +1,36 @@
+{
+  "name": "alpine-skyward-scraper",
+  "version": "1.0.1",
+  "description": "A Playwright-based Node.js library for scraping student data (gradebook, schedule, attendance) from Alpine School District's Skyward Family Access portal.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "skyward",
+    "alpine-school-district",
+    "gradebook",
+    "scraper",
+    "playwright"
+  ],
+  "author": "Mike Wilson <geekinutah@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "dependencies": {
+    "playwright": "^1.44.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "dotenv": "^16.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
