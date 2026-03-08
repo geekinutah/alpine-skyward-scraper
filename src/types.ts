@@ -47,6 +47,17 @@ export interface ScheduleEntry {
 }
 
 /**
+ * Result returned by `getSchedule()`.
+ * Contains all schedule entries and the currently active term label.
+ */
+export interface ScheduleResult {
+    /** All schedule entries across all terms */
+    schedule: ScheduleEntry[];
+    /** The currently active term label (e.g. "Term 3"), or null if not detectable */
+    activeTerm: string | null;
+}
+
+/**
  * A single attendance event.
  */
 export interface AttendanceEntry {

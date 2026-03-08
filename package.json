@@ -4,6 +4,12 @@
   "description": "A Playwright-based Node.js library for scraping student data (gradebook, schedule, attendance) from Alpine School District's Skyward Family Access portal.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "files": [
     "dist"
   ],

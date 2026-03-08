@@ -4,5 +4,6 @@ export type {
     PeriodGrade,
     GradeEntry,
     ScheduleEntry,
+    ScheduleResult,
     AttendanceEntry,
 } from './types';

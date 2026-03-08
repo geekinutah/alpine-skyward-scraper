@@ -1,5 +1,6 @@
 import { chromium, Browser, BrowserContext, Page } from 'playwright';
-import type { Student, GradeEntry, ScheduleEntry, AttendanceEntry } from './types';
+import type { Student, GradeEntry, ScheduleEntry, ScheduleResult, AttendanceEntry } from './types';
+
 
 /**
  * A Playwright-based scraper for the Alpine School District's Skyward Family Access portal.
@@ -20,7 +21,16 @@ import type { Student, GradeEntry, ScheduleEntry, AttendanceEntry } from './type
 export class AlpineSkywardScraper {
     private browser: Browser | null = null;
     private context: BrowserContext | null = null;
-    private page: Page | null = null;
+    private _page: Page | null = null;
+
+    /**
+     * Provides access to the underlying Playwright `Page` instance.
+     * Useful for advanced use cases like navigating to custom pages or dumping HTML.
+     * Will be `null` until `init()` is called.
+     */
+    get page(): Page | null {
+        return this._page;
+    }
 
     /**
      * Launches the Chromium browser. Must be called before `login()`.
@@ -30,7 +40,7 @@ export class AlpineSkywardScraper {
     async init(headless: boolean = true): Promise<void> {
         this.browser = await chromium.launch({ headless });
         this.context = await this.browser.newContext();
-        this.page = await this.context.newPage();
+        this._page = await this.context.newPage();
     }
 
     /**
@@ -44,29 +54,29 @@ export class AlpineSkywardScraper {
      * @throws Error if `init()` has not been called, or if login fails
      */
     async login(url: string, username: string, password: string): Promise<boolean> {
-        if (!this.page) {
+        if (!this._page) {
             throw new Error('Call init() before logging in.');
         }
 
-        await this.page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
-        await this.page.waitForSelector('#login', { timeout: 10000 });
-        await this.page.fill('#login', username);
-        await this.page.fill('#password', password);
+        await this._page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+        await this._page.waitForSelector('#login', { timeout: 10000 });
+        await this._page.fill('#login', username);
+        await this._page.fill('#password', password);
 
         // Skyward opens a new window after login — listen for it
         const [newPage] = await Promise.all([
             this.context!.waitForEvent('page', { timeout: 20000 }).catch(() => null),
-            this.page.click('#bLogin'),
+            this._page.click('#bLogin'),
         ]);
 
         if (newPage) {
-            this.page = newPage;
-            await this.page.waitForLoadState('networkidle');
+            this._page = newPage;
+            await this._page.waitForLoadState('networkidle');
         } else {
-            await this.page.waitForNavigation({ waitUntil: 'networkidle', timeout: 15000 }).catch(() => null);
+            await this._page.waitForNavigation({ waitUntil: 'networkidle', timeout: 15000 }).catch(() => null);
         }
 
-        if (this.page.url().includes('seplog01')) {
+        if (this._page.url().includes('seplog01')) {
             throw new Error('Login failed: still on login page. Check credentials.');
         }
 
@@ -80,11 +90,11 @@ export class AlpineSkywardScraper {
      * @throws Error if not logged in
      */
     async getStudents(): Promise<Student[]> {
-        if (!this.page) throw new Error('Call login() first.');
+        if (!this._page) throw new Error('Call login() first.');
 
-        await this.page.waitForSelector('#sf_StudentList', { timeout: 10000 }).catch(() => null);
+        await this._page.waitForSelector('#sf_StudentList', { timeout: 10000 }).catch(() => null);
 
-        return this.page.evaluate(() => {
+        return this._page.evaluate(() => {
             const links = Array.from(document.querySelectorAll('#sf_StudentList a[role="option"]'));
             return links
                 .map(el => ({
@@ -118,15 +128,15 @@ export class AlpineSkywardScraper {
      * ```
      */
     async selectStudent(student: string | Student): Promise<boolean> {
-        if (!this.page) throw new Error('Call login() first.');
+        if (!this._page) throw new Error('Call login() first.');
 
-        const selectBtn = await this.page.$('#sf_StudentSelect');
+        const selectBtn = await this._page.$('#sf_StudentSelect');
         if (selectBtn) {
             await selectBtn.click({ force: true });
-            await this.page.waitForTimeout(500);
+            await this._page.waitForTimeout(500);
         }
 
-        const options = await this.page.$$('#sf_StudentList a[role="option"]');
+        const options = await this._page.$$('#sf_StudentList a[role="option"]');
         for (const option of options) {
             const text = (await option.innerText()).trim();
             const dataId = await option.getAttribute('data-nameid');
@@ -137,8 +147,10 @@ export class AlpineSkywardScraper {
 
             if (isMatch) {
                 await option.click({ force: true });
-                await this.page.waitForLoadState('networkidle');
-                await this.page.waitForTimeout(2000);
+                // Wait for the page to fully reflect the new student context
+                await this._page.waitForLoadState('networkidle');
+                // Allow time for Skyward's JS to update the student context
+                await this._page.waitForSelector('#sf_StudentSelect', { state: 'visible', timeout: 5000 }).catch(() => null);
                 return true;
             }
         }
@@ -157,9 +169,9 @@ export class AlpineSkywardScraper {
      * @throws Error if not logged in or navigation fails
      */
     async getGradebook(): Promise<GradeEntry[]> {
-        if (!this.page) throw new Error('Call login() first.');
+        if (!this._page) throw new Error('Call login() first.');
 
-        const link = await this.page.evaluateHandle(() => {
+        const link = await this._page.evaluateHandle(() => {
             return Array.from(document.querySelectorAll('a')).find(el => el.textContent?.trim() === 'Gradebook');
         });
         const el = link.asElement();
@@ -167,9 +179,10 @@ export class AlpineSkywardScraper {
         await el.click();
 
         // Wait for gradebook rows to appear, instead of an arbitrary timeout
-        await this.page.waitForSelector('tr[data-rownum], tr[data-desc], .classDesc', { state: 'attached', timeout: 15000 }).catch(() => null);
+        const found = await this._page.waitForSelector('tr[data-rownum], tr[data-desc], .classDesc', { state: 'attached', timeout: 15000 }).catch(() => null);
+        if (!found) console.warn('[AlpineSkywardScraper] getGradebook: timed out waiting for gradebook rows — data may be empty.');
 
-        return this.page.evaluate(() => {
+        return this._page.evaluate(() => {
             const courses = new Map<string, GradeEntry>();
 
             interface GradeEntry {
@@ -225,10 +238,10 @@ export class AlpineSkywardScraper {
      * @returns Array of `ScheduleEntry` objects (may contain duplicates across terms)
      * @throws Error if not logged in or navigation fails
      */
-    async getSchedule(): Promise<ScheduleEntry[]> {
-        if (!this.page) throw new Error('Call login() first.');
+    async getSchedule(): Promise<ScheduleResult> {
+        if (!this._page) throw new Error('Call login() first.');
 
-        const link = await this.page.evaluateHandle(() => {
+        const link = await this._page.evaluateHandle(() => {
             return Array.from(document.querySelectorAll('a')).find(el => el.textContent?.trim() === 'Schedule');
         });
         const el = link.asElement();
@@ -236,9 +249,10 @@ export class AlpineSkywardScraper {
         await el.click();
 
         // Wait for schedule tables to load, instead of an arbitrary timeout
-        await this.page.waitForSelector('table[id^="grid_WEEKDAYStudentClasses_"]', { state: 'attached', timeout: 15000 }).catch(() => null);
+        const found = await this._page.waitForSelector('table[id^="grid_WEEKDAYStudentClasses_"]', { state: 'attached', timeout: 15000 }).catch(() => null);
+        if (!found) console.warn('[AlpineSkywardScraper] getSchedule: timed out waiting for schedule tables — data may be empty.');
 
-        return this.page.evaluate(() => {
+        return this._page.evaluate(() => {
             const results: {
                 course: string;
                 teacher: string;
@@ -253,6 +267,10 @@ export class AlpineSkywardScraper {
             const classTables = Array.from(
                 document.querySelectorAll('table[id^="grid_WEEKDAYStudentClasses_"]')
             );
+
+            // Detect active term from headers
+            const activeTermHeader = document.querySelector('th.sf_highlightYellow strong');
+            const activeTerm = activeTermHeader ? activeTermHeader.textContent?.trim() : null;
 
             // Build a period-to-time map from the label tables
             const periodTimes: Record<number, string> = {};
@@ -315,13 +333,25 @@ export class AlpineSkywardScraper {
 
             // Deduplicate (same course/period appears once per term)
             const seen = new Set<string>();
-            return results.filter(r => {
+            const schedule = results.filter(r => {
                 const key = `${r.course}|${r.period}|${r.term}`;
                 if (seen.has(key)) return false;
                 seen.add(key);
                 return true;
             });
-        });
+
+            return { schedule, activeTerm };
+        }) as Promise<ScheduleResult>;
+    }
+
+    /**
+     * @deprecated Use `(await getSchedule()).activeTerm` instead.
+     * Keeping for backwards compatibility only — this method navigates to the
+     * Schedule page twice if called alongside `getSchedule()`.
+     */
+    async getActiveTerm(): Promise<string | null> {
+        const result = await this.getSchedule();
+        return result.activeTerm;
     }
 
     /**
@@ -334,9 +364,9 @@ export class AlpineSkywardScraper {
      * @throws Error if not logged in or navigation fails
      */
     async getAttendance(): Promise<AttendanceEntry[]> {
-        if (!this.page) throw new Error('Call login() first.');
+        if (!this._page) throw new Error('Call login() first.');
 
-        const link = await this.page.evaluateHandle(() => {
+        const link = await this._page.evaluateHandle(() => {
             return Array.from(document.querySelectorAll('a')).find(el => el.textContent?.trim() === 'Attendance');
         });
         const el = link.asElement();
@@ -344,9 +374,10 @@ export class AlpineSkywardScraper {
         await el.click();
 
         // Wait for attendance tables to load, instead of an arbitrary timeout
-        await this.page.waitForSelector('table[id^="grid_"]', { state: 'attached', timeout: 15000 }).catch(() => null);
+        const found = await this._page.waitForSelector('table[id^="grid_"]', { state: 'attached', timeout: 15000 }).catch(() => null);
+        if (!found) console.warn('[AlpineSkywardScraper] getAttendance: timed out waiting for attendance table — data may be empty.');
 
-        return this.page.evaluate(() => {
+        return this._page.evaluate(() => {
             const results: {
                 date: string;
                 type: string;
@@ -402,7 +433,7 @@ export class AlpineSkywardScraper {
             await this.browser.close();
             this.browser = null;
             this.context = null;
-            this.page = null;
+            this._page = null;
         }
     }
 }
