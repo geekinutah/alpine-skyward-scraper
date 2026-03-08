@@ -165,7 +165,9 @@ export class AlpineSkywardScraper {
         const el = link.asElement();
         if (!el) throw new Error('Gradebook link not found in sidebar.');
         await el.click();
-        await this.page.waitForTimeout(3000);
+
+        // Wait for gradebook rows to appear, instead of an arbitrary timeout
+        await this.page.waitForSelector('tr[data-rownum], tr[data-desc], .classDesc', { state: 'attached', timeout: 15000 }).catch(() => null);
 
         return this.page.evaluate(() => {
             const courses = new Map<string, GradeEntry>();
@@ -232,7 +234,9 @@ export class AlpineSkywardScraper {
         const el = link.asElement();
         if (!el) throw new Error('Schedule link not found in sidebar.');
         await el.click();
-        await this.page.waitForTimeout(3000);
+
+        // Wait for schedule tables to load, instead of an arbitrary timeout
+        await this.page.waitForSelector('table[id^="grid_WEEKDAYStudentClasses_"]', { state: 'attached', timeout: 15000 }).catch(() => null);
 
         return this.page.evaluate(() => {
             const results: {
@@ -338,7 +342,9 @@ export class AlpineSkywardScraper {
         const el = link.asElement();
         if (!el) throw new Error('Attendance link not found in sidebar.');
         await el.click();
-        await this.page.waitForTimeout(3000);
+
+        // Wait for attendance tables to load, instead of an arbitrary timeout
+        await this.page.waitForSelector('table[id^="grid_"]', { state: 'attached', timeout: 15000 }).catch(() => null);
 
         return this.page.evaluate(() => {
             const results: {
