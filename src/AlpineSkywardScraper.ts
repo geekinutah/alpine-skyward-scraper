@@ -24,6 +24,11 @@ export class AlpineSkywardScraper {
     private _page: Page | null = null;
 
     /**
+     * Default URL for the Alpine School District Skyward Family Access portal.
+     */
+    public static readonly ALPINE_URL = 'https://skyward.alpinedistrict.org/scripts/wsisa.dll/WService=wsEAplus/seplog01';
+
+    /**
      * Provides access to the underlying Playwright `Page` instance.
      * Useful for advanced use cases like navigating to custom pages or dumping HTML.
      * Will be `null` until `init()` is called.
@@ -47,13 +52,13 @@ export class AlpineSkywardScraper {
      * Navigates to the Skyward login page and authenticates.
      * Handles the popup window that Skyward opens after login.
      *
-     * @param url - Full URL to the Skyward login page (e.g. your district's seplog01 URL)
      * @param username - Skyward username
      * @param password - Skyward password
+     * @param url - Full URL to the Skyward login page. Defaults to `AlpineSkywardScraper.ALPINE_URL`.
      * @returns `true` on success
      * @throws Error if `init()` has not been called, or if login fails
      */
-    async login(url: string, username: string, password: string): Promise<boolean> {
+    async login(username: string, password: string, url: string = AlpineSkywardScraper.ALPINE_URL): Promise<boolean> {
         if (!this._page) {
             throw new Error('Call init() before logging in.');
         }

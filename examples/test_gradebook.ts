@@ -4,11 +4,10 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 (async () => {
-    const url = process.env.SKYWARD_URL;
     const username = process.env.SKYWARD_USER;
     const password = process.env.SKYWARD_PASS;
 
-    if (!url || !username || !password) {
+    if (!username || !password) {
         console.error('Missing credentials');
         process.exit(1);
     }
@@ -17,7 +16,7 @@ dotenv.config();
 
     try {
         await scraper.init(true);
-        const loggedIn = await scraper.login(url, username, password);
+        const loggedIn = await scraper.login(username, password);
         if (!loggedIn) {
             console.error("Login failed");
             return;

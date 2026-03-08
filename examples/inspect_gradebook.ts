@@ -5,7 +5,6 @@ import * as fs from 'fs';
 dotenv.config();
 
 (async () => {
-    const url = process.env.SKYWARD_URL || '';
     const username = process.env.SKYWARD_USER || '';
     const password = process.env.SKYWARD_PASS || '';
 
@@ -13,7 +12,7 @@ dotenv.config();
 
     try {
         await scraper.init(true);
-        const loggedIn = await scraper.login(url, username, password);
+        const loggedIn = await scraper.login(username, password);
         if (!loggedIn) {
             console.error("Login failed");
             return;

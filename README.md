@@ -30,7 +30,7 @@ import { AlpineSkywardScraper } from 'alpine-skyward-scraper';
 const scraper = new AlpineSkywardScraper();
 
 await scraper.init();
-await scraper.login(process.env.SKYWARD_URL!, process.env.SKYWARD_USER!, process.env.SKYWARD_PASS!);
+await scraper.login(process.env.SKYWARD_USER!, process.env.SKYWARD_PASS!);
 
 const students = await scraper.getStudents();
 await scraper.selectStudent(students[0].name);
@@ -66,15 +66,15 @@ Launches the Chromium browser.
 
 ---
 
-### `login(url, username, password): Promise<boolean>`
+### `login(username, password, url?): Promise<boolean>`
 
 Navigates to the Skyward login page and authenticates.
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `url` | `string` | Full URL to the Skyward login page (your district's `seplog01` URL). |
-| `username` | `string` | Skyward username |
-| `password` | `string` | Skyward password |
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `username` | `string` | - | Skyward username |
+| `password` | `string` | - | Skyward password |
+| `url` | `string` | `ALPINE_URL` | Full URL to the Skyward login page. Defaults to Alpine School District. |
 
 **Returns:** `true` on success.  
 **Throws:** `Error` if login fails or `init()` was not called.

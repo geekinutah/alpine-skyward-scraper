@@ -4,7 +4,6 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 (async () => {
-    const url = process.env.SKYWARD_URL || '';
     const username = process.env.SKYWARD_USER || '';
     const password = process.env.SKYWARD_PASS || '';
 
@@ -12,8 +11,8 @@ dotenv.config();
 
     try {
         await scraper.init();
-        console.log(`Logging in to ${url}...`);
-        await scraper.login(url, username, password);
+        console.log('Logging in...');
+        await scraper.login(username, password);
         console.log("Login successful!");
 
         const students = await scraper.getStudents();
@@ -28,7 +27,8 @@ dotenv.config();
             console.log(`  Found ${grades.length} courses with grades.`);
 
             console.log("Fetching Schedule...");
-            const schedule = await scraper.getSchedule();
+            const scheduleResult = await scraper.getSchedule();
+            const schedule = scheduleResult.schedule;
             console.log(`  Found ${schedule.length} schedule entries.`);
             if (schedule.length > 0) {
                 console.log("  First entry:", schedule[0]);

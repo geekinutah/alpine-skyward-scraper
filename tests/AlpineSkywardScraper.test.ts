@@ -6,14 +6,13 @@ import * as path from 'path';
 // Load environment variables from the .env file in the project root
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
-const url = process.env.SKYWARD_URL;
 const user = process.env.SKYWARD_USER;
 const pass = process.env.SKYWARD_PASS;
 
 beforeAll(() => {
-    if (!url || !user || !pass) {
+    if (!user || !pass) {
         throw new Error(
-            'Live integration setup failed: SKYWARD_URL, SKYWARD_USER, and SKYWARD_PASS ' +
+            'Live integration setup failed: SKYWARD_USER and SKYWARD_PASS ' +
             'must be defined in the .env file to run the tests.'
         );
     }
@@ -32,7 +31,7 @@ test('AlpineSkywardScraper full integration loop', async () => {
 
     try {
         // Test Login
-        const loggedIn = await scraper.login(url!, user!, pass!);
+        const loggedIn = await scraper.login(user!, pass!);
         expect(loggedIn).toBe(true);
 
         // Ensure student list populates
