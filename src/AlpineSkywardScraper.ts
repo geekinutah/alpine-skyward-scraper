@@ -459,14 +459,14 @@ export class AlpineSkywardScraper {
     async getStudents(): Promise<Student[]> {
         const page = this.requirePage();
 
-        await page.waitForSelector('#sf_StudentList', { timeout: 10000 }).catch(() => null);
+        await page.waitForSelector('#sf_StudentList', { timeout: 10000 });
 
         return page.evaluate(() => {
-            const links = Array.from(document.querySelectorAll('#sf_StudentList a[role="option"]'));
+            const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('#sf_StudentList a[role="option"]'));
             return links
                 .map(el => ({
-                    name: (el as HTMLElement).innerText.trim(),
-                    id: (el as HTMLElement).dataset.nameid || null,
+                    name: el.innerText.trim(),
+                    id: el.dataset.nameid || null,
                 }))
                 .filter(s => s.name && s.name !== 'All Students');
         });
@@ -500,7 +500,6 @@ export class AlpineSkywardScraper {
         const selectBtn = await page.$('#sf_StudentSelect');
         if (selectBtn) {
             await selectBtn.click({ force: true });
-            await page.waitForTimeout(500);
         }
 
         const options = await page.$$('#sf_StudentList a[role="option"]');
@@ -517,7 +516,7 @@ export class AlpineSkywardScraper {
                 // Wait for the page to fully reflect the new student context
                 await page.waitForLoadState('networkidle');
                 // Allow time for Skyward's JS to update the student context
-                await page.waitForSelector('#sf_StudentSelect', { state: 'visible', timeout: 5000 }).catch(() => null);
+                await page.waitForSelector('#sf_StudentSelect', { state: 'visible', timeout: 500 });
                 return true;
             }
         }
