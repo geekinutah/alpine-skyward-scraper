@@ -440,20 +440,12 @@ export class AlpineSkywardScraper {
 
         // Skyward opens a new window after login — listen for it
         const [newPage] = await Promise.all([
-            this.context!.waitForEvent('page', { timeout: 20000 }).catch(() => null),
+            this.context!.waitForEvent('page', { timeout: 5000 }),
             this._page.click('#bLogin'),
         ]);
 
-        if (newPage) {
-            this._page = newPage;
-            await this._page.waitForLoadState('networkidle');
-        } else {
-            await this._page.waitForNavigation({ waitUntil: 'networkidle', timeout: 15000 }).catch(() => null);
-        }
-
-        if (this._page.url().includes('seplog01')) {
-            throw new Error('Login failed: still on login page. Check credentials.');
-        }
+        this._page = newPage;
+        await this._page.waitForLoadState('networkidle');
 
         return true;
     }
