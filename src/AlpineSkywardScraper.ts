@@ -90,11 +90,16 @@ export class AlpineSkywardScraper {
 
         const closeButton = page.locator('.sf_DialogWrap[role="dialog"] .sf_DialogClose, .ui-dialog-titlebar-close, [role="dialog"] .sf_DialogClose').first();
         if (await closeButton.count()) {
-            await closeButton.click({ force: true }).catch(() => null);
+            await closeButton.click({ force: true }).catch((e) => {
+                console.info('[AlpineSkywardScraper] closeVisibleDialog: close button click failed:', e instanceof Error ? e.message : e);
+            });
         } else {
-            await page.keyboard.press('Escape').catch(() => null);
+            await page.keyboard.press('Escape').catch((e) => {
+                console.info('[AlpineSkywardScraper] closeVisibleDialog: Escape keypress failed:', e instanceof Error ? e.message : e);
+            });
         }
         await page.waitForTimeout(250);
+        console.warn('[AlpineSkywardScraper] closeVisibleDialog: dialog may still be visible, neither close button nor Escape succeeded.');
     }
 
     private async readBaseGradebookRows(): Promise<GradebookRow[]> {
