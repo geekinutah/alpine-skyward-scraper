@@ -103,9 +103,17 @@ Switches the active student context. Must be called before `getGradebook()`, `ge
 
 ---
 
-### `getGradebook(): Promise<GradeEntry[]>`
+### `getGradebook(term?): Promise<GradeEntry[]>`
 
-Fetches the gradebook for the currently selected student. Supports both High School (quarter-based) and Elementary (standards-based) Skyward layouts.
+Fetches the gradebook for the currently selected student. Supports both secondary quarter-based layouts and elementary standards-based layouts.
+
+By default, this method bulk-loads grade detail modals only for the current term and attaches assignment- or skill-level detail to each `GradeEntry` in `assignmentEntries`. You can pass a term like `"Q3"` or `"TERM 1"` to target a different term explicitly.
+
+Some Skyward grade targets do not reliably open a modal. Those entries are skipped with a warning instead of failing the entire gradebook fetch.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `term` | `string` | Optional term label to scrape detail modals for (e.g. `"Q3"`, `"TERM 1"`). Defaults to the current highlighted term when detectable. |
 
 **Returns:** Array of `GradeEntry` objects.  
 **Throws:** `Error` if not logged in or navigation fails.
@@ -147,6 +155,29 @@ interface Student {
 interface GradeEntry {
     course: string;                            // e.g. "ENGLISH 11"
     grades: { period: string; grade: string }[]; // e.g. [{ period: "Q1", grade: "A" }]
+    assignmentEntries?: AssignmentEntry[];     // Bulk-loaded assignment or skill detail
+}
+
+interface AssignmentEntry {
+    id?: string | null;           // Skyward assignment ID when available
+    name: string;                 // Assignment, event, or skill name
+    period?: string | null;       // e.g. "Q3" or "Current"
+    dueDate?: string | null;      // e.g. "03/04/26"
+    category?: string | null;     // e.g. "Assignments", "Quiz", "Skill"
+    categoryWeight?: number | null; // e.g. 20 for weighted categories
+    grade?: string | null;        // e.g. "A", "C-", "3", "NA"
+    scorePercent?: number | null; // e.g. 74
+    pointsEarned?: number | null; // e.g. 14.8
+    pointsPossible?: number | null; // e.g. 20
+    pointsText?: string | null;   // e.g. "14.8 out of 20"
+    missing?: boolean | null;
+    noCount?: boolean | null;
+    absentStatus?: string | null; // e.g. "Unexcused Absence"
+    subject?: string | null;      // Common in elementary standards views
+    skillCode?: string | null;    // e.g. "4.SL.1"
+    skillDescription?: string | null;
+    isSkill?: boolean;
+    isGradedSubject?: boolean | null;
 }
 
 interface ScheduleEntry {
@@ -165,6 +196,11 @@ interface AttendanceEntry {
     course: string;    // e.g. "ENGLISH 11"
 }
 ```
+
+### Grade Detail Notes
+
+- Secondary-style grade modals usually return classic assignment rows with due dates, grades, percentages, points, and optional weighted categories.
+- Elementary standards-based modals return skill-style entries instead of classic assignments. In those cases `AssignmentEntry.isSkill` is `true`, and fields like `subject`, `skillCode`, and `skillDescription` are more useful than points.
 
 ---
 

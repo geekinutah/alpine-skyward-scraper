@@ -19,6 +19,50 @@ export interface PeriodGrade {
 }
 
 /**
+ * Assignment- or skill-level detail extracted from a grade modal.
+ */
+export interface AssignmentEntry {
+    /** Internal Skyward assignment ID, if available */
+    id?: string | null;
+    /** Assignment, event, or skill name */
+    name: string;
+    /** Term/quarter label the entry belongs to (e.g. "Q3", "Current") */
+    period?: string | null;
+    /** Due date as displayed by Skyward */
+    dueDate?: string | null;
+    /** Assignment category or standards bucket (e.g. "Assignments", "Quiz") */
+    category?: string | null;
+    /** Category weight percentage, if shown */
+    categoryWeight?: number | null;
+    /** Assignment letter mark or rubric value */
+    grade?: string | null;
+    /** Numeric score percentage, if shown */
+    scorePercent?: number | null;
+    /** Points earned, if shown */
+    pointsEarned?: number | null;
+    /** Points possible, if shown */
+    pointsPossible?: number | null;
+    /** Raw points string as displayed by Skyward */
+    pointsText?: string | null;
+    /** Whether the item is flagged missing */
+    missing?: boolean | null;
+    /** Whether the item is excluded from counting */
+    noCount?: boolean | null;
+    /** Attendance-related status attached to the item */
+    absentStatus?: string | null;
+    /** Subject/standards area label, common in elementary modals */
+    subject?: string | null;
+    /** Standards code for elementary skill rows */
+    skillCode?: string | null;
+    /** Standards description for elementary skill rows */
+    skillDescription?: string | null;
+    /** Whether this row represents a skill/standard rather than a classic assignment */
+    isSkill?: boolean;
+    /** Whether Skyward marks the subject as graded */
+    isGradedSubject?: boolean | null;
+}
+
+/**
  * Gradebook entry for one course.
  */
 export interface GradeEntry {
@@ -26,6 +70,8 @@ export interface GradeEntry {
     course: string;
     /** List of term grades for this course */
     grades: PeriodGrade[];
+    /** Assignment, event, or skill details gathered from the grade modal */
+    assignmentEntries?: AssignmentEntry[];
 }
 
 /**
