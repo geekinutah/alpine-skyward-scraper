@@ -497,13 +497,13 @@ export class AlpineSkywardScraper {
     async selectStudent(student: string | Student): Promise<boolean> {
         const page = this.requirePage();
 
-        const selectBtn = await page.$('#sf_StudentSelect');
-        if (selectBtn) {
+        const selectBtn = page.locator('#sf_StudentSelect');
+        if (await selectBtn.count()) {
             await selectBtn.click({ force: true });
         }
 
-        const options = await page.$$('#sf_StudentList a[role="option"]');
-        for (const option of options) {
+        const options = page.locator('#sf_StudentList a[role="option"]');
+        for (const option of await options.all()) {
             const text = (await option.innerText()).trim();
             const dataId = await option.getAttribute('data-nameid');
 
