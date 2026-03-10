@@ -75,14 +75,10 @@ export class AlpineSkywardScraper {
     private async waitForVisibleDialog(): Promise<void> {
         const page = this.requirePage();
 
-        await page.waitForFunction(() => {
-            const dialogs = Array.from(document.querySelectorAll('.sf_DialogWrap[role="dialog"], .ui-dialog, [role="dialog"]'));
-            return dialogs.some((el) => {
-                const htmlEl = el as HTMLElement;
-                const style = window.getComputedStyle(htmlEl);
-                return style.display !== 'none' && style.visibility !== 'hidden' && htmlEl.innerText.trim().length > 0;
-            });
-        }, undefined, { timeout: 5000 });
+        await page.locator('.sf_DialogWrap[role="dialog"], .ui-dialog, [role="dialog"]')
+            .filter({ hasText: /\S/ })
+            .first()
+            .waitFor({ state: 'visible', timeout: 2000 });
     }
 
     private async closeVisibleDialog(): Promise<void> {
@@ -98,8 +94,10 @@ export class AlpineSkywardScraper {
                 console.info('[AlpineSkywardScraper] closeVisibleDialog: Escape keypress failed:', e instanceof Error ? e.message : e);
             });
         }
-        await page.waitForTimeout(250);
-        console.warn('[AlpineSkywardScraper] closeVisibleDialog: dialog may still be visible, neither close button nor Escape succeeded.');
+        await page.locator('.sf_DialogWrap[role="dialog"], .ui-dialog, [role="dialog"]')
+            .first()
+            .waitFor({ state: 'hidden', timeout: 2000 })
+            .catch(() => null);
     }
 
     private async readBaseGradebookRows(): Promise<GradebookRow[]> {
@@ -459,7 +457,7 @@ export class AlpineSkywardScraper {
     async getStudents(): Promise<Student[]> {
         const page = this.requirePage();
 
-        await page.waitForSelector('#sf_StudentList', { timeout: 10000 });
+        await page.waitForSelector('#sf_StudentList', { state: 'attached', timeout: 10000 });
 
         return page.evaluate(() => {
             const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('#sf_StudentList a[role="option"]'));
@@ -500,6 +498,7 @@ export class AlpineSkywardScraper {
         const selectBtn = page.locator('#sf_StudentSelect');
         if (await selectBtn.count()) {
             await selectBtn.click({ force: true });
+            await page.locator('#sf_StudentList').waitFor({ state: 'visible', timeout: 2000 }).catch(() => null);
         }
 
         const options = page.locator('#sf_StudentList a[role="option"]');
@@ -557,7 +556,6 @@ export class AlpineSkywardScraper {
             try {
                 await locator.click({ force: true });
                 await this.waitForVisibleDialog();
-                await page.waitForTimeout(250);
 
                 const modalDetails = await this.readGradeModalDetails(target);
                 const row = rowsByKey.get(target.rowKey);
