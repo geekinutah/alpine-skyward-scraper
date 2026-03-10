@@ -1,13 +1,14 @@
 import { test, expect } from 'vitest';
-import { createLoggedInScraper, selectFirstStudent } from './liveTestUtils';
+import { getSchedule } from '../src/schedule';
+import { createLoggedInPage, selectFirstStudent } from './liveTestUtils';
 
 test('getSchedule loads schedule entries and active term', async () => {
-    const scraper = await createLoggedInScraper();
+    const { page, scraper } = await createLoggedInPage();
 
     try {
-        await selectFirstStudent(scraper);
+        await selectFirstStudent(page);
 
-        const scheduleResult = await scraper.getSchedule();
+        const scheduleResult = await getSchedule(page);
         expect(Array.isArray(scheduleResult.schedule)).toBe(true);
         expect(scheduleResult.activeTerm === null || typeof scheduleResult.activeTerm === 'string').toBe(true);
 

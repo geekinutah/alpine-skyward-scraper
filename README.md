@@ -33,7 +33,7 @@ await scraper.init();
 await scraper.login(process.env.SKYWARD_USER!, process.env.SKYWARD_PASS!);
 
 const students = await scraper.getStudents();
-await scraper.selectStudent(students[0].name);
+await scraper.selectStudent(students[0]);
 
 const grades    = await scraper.getGradebook();
 const schedule  = await scraper.getSchedule();
@@ -90,15 +90,17 @@ Lists all students on the account.
 
 ---
 
-### `selectStudent(name): Promise<boolean>`
+### `selectStudent(student): Promise<boolean>`
 
 Switches the active student context. Must be called before `getGradebook()`, `getSchedule()`, or `getAttendance()`.
 
+Passing a `Student` object (from `getStudents()`) is preferred — it matches by Skyward's internal ID, which is faster and more reliable than name matching.
+
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `name` | `string` | Full name as returned by `getStudents()` (e.g. `"Jane Doe"`) |
+| `student` | `string \| Student` | Full name string (e.g. `"Jane Doe"`) or a `Student` object returned by `getStudents()` |
 
-**Returns:** `true` if the student was selected.  
+**Returns:** `true` if the student was selected.
 **Throws:** `Error` if the student is not found.
 
 ---
@@ -120,11 +122,14 @@ Some Skyward grade targets do not reliably open a modal. Those entries are skipp
 
 ---
 
-### `getSchedule(): Promise<ScheduleEntry[]>`
+### `getSchedule(): Promise<ScheduleResult>`
 
 Fetches the class schedule for the currently selected student.
 
-**Returns:** Array of `ScheduleEntry` objects.  
+**Returns:** A `ScheduleResult` object with two fields:
+- `schedule` — array of `ScheduleEntry` objects across all terms
+- `activeTerm` — the currently highlighted term label (e.g. `"Term 3"`), or `null` if not detectable
+
 **Throws:** `Error` if not logged in or navigation fails.
 
 ---
@@ -144,6 +149,22 @@ Closes the browser and releases all resources. Always call this when finished.
 
 ---
 
+## Project Structure
+
+The library is organized into focused modules under `src/`:
+
+| File | Responsibility |
+|------|----------------|
+| `AlpineSkywardScraper.ts` | Public class — thin coordinator that delegates to modules below |
+| `browser.ts` | Browser lifecycle (`init`, `close`) and shared Playwright helpers |
+| `students.ts` | `getStudents`, `selectStudent` |
+| `gradebook.ts` | `getGradebook` and all gradebook parsing internals |
+| `schedule.ts` | `getSchedule` |
+| `attendance.ts` | `getAttendance` |
+| `types.ts` | Shared TypeScript interfaces |
+
+---
+
 ## Type Definitions
 
 ```typescript
@@ -152,10 +173,15 @@ interface Student {
     id: string | null;   // Internal Skyward student ID
 }
 
+interface PeriodGrade {
+    period: string;  // e.g. "Q1", "Q2", "TERM 1"
+    grade: string;   // e.g. "A", "B+", "P"
+}
+
 interface GradeEntry {
-    course: string;                            // e.g. "ENGLISH 11"
-    grades: { period: string; grade: string }[]; // e.g. [{ period: "Q1", grade: "A" }]
-    assignmentEntries?: AssignmentEntry[];     // Bulk-loaded assignment or skill detail
+    course: string;                        // e.g. "ENGLISH 11"
+    grades: PeriodGrade[];                 // e.g. [{ period: "Q1", grade: "A" }]
+    assignmentEntries?: AssignmentEntry[]; // Bulk-loaded assignment or skill detail
 }
 
 interface AssignmentEntry {
@@ -180,12 +206,17 @@ interface AssignmentEntry {
     isGradedSubject?: boolean | null;
 }
 
+interface ScheduleResult {
+    schedule: ScheduleEntry[];
+    activeTerm: string | null;  // e.g. "Term 3", or null if not detectable
+}
+
 interface ScheduleEntry {
     course: string;    // e.g. "SECONDARY MATH 3"
     teacher: string;   // e.g. "John Doe"
     period: string;    // e.g. "Period 4"
     time?: string;     // e.g. "12:55 PM - 2:15 PM"
-    term: string;      // e.g. "Q3"
+    term: string;      // e.g. "Term 1", "Term 2"
     room?: string;     // Room number if available
 }
 

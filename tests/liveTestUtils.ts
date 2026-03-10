@@ -1,7 +1,11 @@
 import { beforeAll } from 'vitest';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import { Page } from 'playwright';
 import { AlpineSkywardScraper } from '../src/AlpineSkywardScraper';
+import { getStudents, selectStudent } from '../src/students';
+import { getGradebook } from '../src/gradebook';
+import type { Student } from '../src/types';
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
@@ -17,6 +21,9 @@ beforeAll(() => {
     }
 });
 
+/**
+ * Creates a logged-in scraper instance. Use when testing the class API directly.
+ */
 export async function createLoggedInScraper(): Promise<AlpineSkywardScraper> {
     const scraper = new AlpineSkywardScraper();
     await scraper.init(true);
@@ -24,25 +31,34 @@ export async function createLoggedInScraper(): Promise<AlpineSkywardScraper> {
     return scraper;
 }
 
-export async function selectFirstStudent(scraper: AlpineSkywardScraper) {
-    const students = await scraper.getStudents();
+/**
+ * Creates a logged-in browser session and returns the Page.
+ * Use when testing module functions directly.
+ * The caller is responsible for calling scraper.close() when done.
+ */
+export async function createLoggedInPage(): Promise<{ page: Page; scraper: AlpineSkywardScraper }> {
+    const scraper = await createLoggedInScraper();
+    return { page: scraper.page!, scraper };
+}
+
+export async function selectFirstStudent(page: Page): Promise<Student> {
+    const students = await getStudents(page);
     if (students.length === 0) {
         throw new Error('No students were returned by Skyward.');
     }
-
-    await scraper.selectStudent(students[0]);
+    await selectStudent(page, students[0]);
     return students[0];
 }
 
-export async function findStudentWithGradeDetails(scraper: AlpineSkywardScraper) {
-    const students = await scraper.getStudents();
+export async function findStudentWithGradeDetails(page: Page) {
+    const students = await getStudents(page);
     if (students.length === 0) {
         throw new Error('No students were returned by Skyward.');
     }
 
     for (const student of students) {
-        await scraper.selectStudent(student);
-        const grades = await scraper.getGradebook();
+        await selectStudent(page, student);
+        const grades = await getGradebook(page);
         const gradeWithEntries = grades.find((entry) => Array.isArray(entry.assignmentEntries) && entry.assignmentEntries.length > 0);
 
         if (gradeWithEntries) {

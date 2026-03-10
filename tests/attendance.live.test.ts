@@ -1,13 +1,14 @@
 import { test, expect } from 'vitest';
-import { createLoggedInScraper, selectFirstStudent } from './liveTestUtils';
+import { getAttendance } from '../src/attendance';
+import { createLoggedInPage, selectFirstStudent } from './liveTestUtils';
 
 test('getAttendance loads attendance entries', async () => {
-    const scraper = await createLoggedInScraper();
+    const { page, scraper } = await createLoggedInPage();
 
     try {
-        await selectFirstStudent(scraper);
+        await selectFirstStudent(page);
 
-        const attendance = await scraper.getAttendance();
+        const attendance = await getAttendance(page);
         expect(Array.isArray(attendance)).toBe(true);
 
         if (attendance.length > 0) {

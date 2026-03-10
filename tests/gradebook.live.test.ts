@@ -1,11 +1,12 @@
 import { test, expect } from 'vitest';
-import { createLoggedInScraper, findStudentWithGradeDetails } from './liveTestUtils';
+import { getGradebook } from '../src/gradebook';
+import { createLoggedInPage, findStudentWithGradeDetails } from './liveTestUtils';
 
 test('getGradebook loads grade entries with assignment details', async () => {
-    const scraper = await createLoggedInScraper();
+    const { page, scraper } = await createLoggedInPage();
 
     try {
-        const { grades, gradeWithEntries } = await findStudentWithGradeDetails(scraper);
+        const { grades, gradeWithEntries } = await findStudentWithGradeDetails(page);
         expect(Array.isArray(grades)).toBe(true);
         expect(grades.length).toBeGreaterThan(0);
         expect(Array.isArray(gradeWithEntries.assignmentEntries)).toBe(true);
